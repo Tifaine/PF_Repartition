@@ -39,7 +39,7 @@ int client_TCP_init_connec(char* addr, int port);
 /*
 	Envoie un message au serveur
 */
-int client_TCP_envoi_message(char* message);
+int client_TCP_envoi_message(char* nom_emetteur, int type, char* message);
 
 /*
 	Thread d'attente d'un message, notifie un mutex en cas de message, débloquant l'agent

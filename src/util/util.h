@@ -16,6 +16,21 @@
 #include <string.h>   //strlen
 #include <stdlib.h>
 
+typedef struct Plateforme
+{
+	
+	// Declaration of thread condition variable
+	pthread_cond_t condPF;
+
+	// declaring mutex 
+	pthread_mutex_t lockPF;
+
+	int nbItem;
+	char** tabMessageRecu;
+
+	char* nom;
+}
+Plateforme;
 
 /**
  * \fn char** str_split(char* a_str, const char a_delim, int* nbItem)

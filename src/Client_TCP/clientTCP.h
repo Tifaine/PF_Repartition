@@ -34,7 +34,7 @@
 	-1 si la socket ne s'est pas créée,
 	-2 si la connexion au server a échouée
 */
-int client_TCP_init_connec(char* addr, int port);
+int client_TCP_init_connec(char* addr, int port, void* arg);
 
 /*
 	Envoie un message au serveur
@@ -44,6 +44,6 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message);
 /*
 	Thread d'attente d'un message, notifie un mutex en cas de message, débloquant l'agent
 */
-void* client_TCP_attente_message();
+void* client_TCP_attente_message(void* arg);
 
 #endif //CLIENT_TCP_H

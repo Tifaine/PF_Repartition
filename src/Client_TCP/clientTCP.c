@@ -1,7 +1,7 @@
 #include "clientTCP.h"
 
 
-#define MAXDATASIZE 500
+#define MAXDATASIZE 2000
 static int sockFileDescriptor;
 static int isConnected = 0;
 
@@ -17,7 +17,8 @@ pthread_mutex_t lockClient = PTHREAD_MUTEX_INITIALIZER;
 struct timespec timeToWait;
 struct timeval now;
 
-int client_TCP_init_connec(char* addr, int port)
+
+int client_TCP_init_connec(char* addr, int port, void* arg)
 {
 	
 	struct sockaddr_in servaddr;
@@ -40,7 +41,7 @@ int client_TCP_init_connec(char* addr, int port)
 		printf("connected to the server.\n"); 
 	}
 	isConnected = 1;
-	pthread_create(&(threadClientTCP),NULL,client_TCP_attente_message,NULL);
+	pthread_create(&(threadClientTCP),NULL,client_TCP_attente_message,arg);
 	return 0;
 }
 
@@ -49,7 +50,7 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 	int rt;
 	char* messageToSend;
 	messageToSend = malloc(strlen("01AB")+strlen(message)+strlen(nom_emetteur)+5+sizeof(int));
-	sprintf(messageToSend,"01AB|%d|%s|%d|%d|%s",strlen(nom_emetteur),nom_emetteur,type,strlen(message),message);
+	sprintf(messageToSend,"01AB%d|%s|%d|%d|%s",strlen(nom_emetteur),nom_emetteur,type,strlen(message),message);
 
 
 	if(send(sockFileDescriptor, messageToSend, strlen(messageToSend), MSG_CONFIRM) == -1)
@@ -70,7 +71,7 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 	return 0;
 }
 
-void* client_TCP_attente_message(void* ag)
+void* client_TCP_attente_message(void* arg)
 {
 	char* buf;
 	printf("Attente message\n");
@@ -82,29 +83,36 @@ void* client_TCP_attente_message(void* ag)
 			buf[0]='\0';
 			if(recv(sockFileDescriptor, buf, MAXDATASIZE, 0)>0)
 			{
+				printf("Recu : %s\n",buf);
 				char** result;
 				result = malloc(sizeof(char*));	
 				int nbMess = findSubstring(buf,"01AB", &result);
 				free(buf);
+				
 				for(int i = nbMess-1;i>=0;i--)
-				{		
-					printf("Message reçu : %s\n",result[i]);
+				{	
+					printf("Recu : %s\n",result[i]);
+					
 					if(strstr(result[i],"success")!=NULL)
 					{
-						
-						free(result[i]);
 						pthread_mutex_lock(&lockClient);
 						pthread_cond_signal(&condClient); 
-						pthread_mutex_unlock(&lockClient);
-						usleep(100);
-					
+						pthread_mutex_unlock(&lockClient);						
+						free(result[i]);
+						usleep(100);					
 					}else
-					{  					
-						
+					{
+    					((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem] = malloc(MAXDATASIZE);
+						strcpy(((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem], result[i]);
+						((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem][strlen(result[i])]='\0';
+    					((Plateforme*)arg)->nbItem++;    					
     					free(result[i]);
-					}
 
-				}				
+    					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
+						pthread_cond_signal((&((Plateforme*)arg)->condPF));
+						pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
+					}
+				}			
 			}else
 			{
 				return NULL;

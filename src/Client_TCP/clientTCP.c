@@ -9,7 +9,7 @@ pthread_t threadClientTCP;
 
 // Declaration of thread condition variable
 pthread_cond_t condClient = PTHREAD_COND_INITIALIZER;
-  
+
 // declaring mutex 
 pthread_mutex_t lockClient = PTHREAD_MUTEX_INITIALIZER;
 
@@ -55,7 +55,7 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 
 	if(send(sockFileDescriptor, messageToSend, strlen(messageToSend), MSG_CONFIRM) == -1)
 	{
-        perror("send");
+		perror("send");
 		return (1);
 	}
 	gettimeofday(&now,NULL);
@@ -74,7 +74,6 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 void* client_TCP_attente_message(void* arg)
 {
 	char* buf;
-	printf("Attente message\n");
 	while(1)
 	{
 		if(isConnected == 1)
@@ -83,36 +82,36 @@ void* client_TCP_attente_message(void* arg)
 			buf[0]='\0';
 			if(recv(sockFileDescriptor, buf, MAXDATASIZE, 0)>0)
 			{
-				printf("Recu : %s\n",buf);
 				char** result;
 				result = malloc(sizeof(char*));	
 				int nbMess = findSubstring(buf,"01AB", &result);
 				free(buf);
-				
-				for(int i = nbMess-1;i>=0;i--)
-				{	
-					printf("Recu : %s\n",result[i]);
-					
-					if(strstr(result[i],"success")!=NULL)
+				if(nbMess>0)
+				{
+					for(int i = nbMess-1;i>=0;i--)
 					{
-						pthread_mutex_lock(&lockClient);
-						pthread_cond_signal(&condClient); 
-						pthread_mutex_unlock(&lockClient);						
-						free(result[i]);
-						usleep(100);					
-					}else
-					{
-    					((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem] = malloc(MAXDATASIZE);
-						strcpy(((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem], result[i]);
-						((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem][strlen(result[i])]='\0';
-    					((Plateforme*)arg)->nbItem++;    					
-    					free(result[i]);
+						if(strstr(result[i],"success")!=NULL)
+						{
+							pthread_mutex_lock(&lockClient);
+							pthread_cond_signal(&condClient); 
+							pthread_mutex_unlock(&lockClient);
+							free(result[i]);
+							usleep(100);
+						}else
+						{
+							((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem] = malloc(MAXDATASIZE);
+							strcpy(((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem], result[i]);
+							((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem][strlen(result[i])]='\0';
+							((Plateforme*)arg)->nbItem++;    					
+							free(result[i]);
 
-    					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
-						pthread_cond_signal((&((Plateforme*)arg)->condPF));
-						pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
-					}
-				}			
+							pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
+							pthread_cond_signal((&((Plateforme*)arg)->condPF));
+							pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
+						}
+					}	
+				}
+
 			}else
 			{
 				return NULL;

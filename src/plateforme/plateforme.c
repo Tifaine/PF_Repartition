@@ -1,7 +1,9 @@
 #include "plateforme.h"
 
 static int state = 0;
-
+static int isInit = 0;
+objet* listObjet;
+static int nbObjet = 0;
 
 int connectToServer(char* nom)
 {
@@ -17,14 +19,14 @@ void initPF(Plateforme* pf, char* nom)
 	strcpy(pf->nom,nom);
 	pf->nbItem = 0;
 	pf->tabMessageRecu = malloc(sizeof(char*));
+	listObjet = (objet*)malloc(sizeof(objet));
 }
 
 void PF_run(Plateforme* pf)
 {
 	int rt;
 	connectToServer(pf->nom);
-	printf("Waiting init\n");	
-/*
+
 	while(1)
 	{
 		switch(state)
@@ -34,7 +36,18 @@ void PF_run(Plateforme* pf)
 			{
 				if(strlen(pf->tabMessageRecu[i])>1)
 				{
-					PF_Traitement_Message(pf->tabMessageRecu[i]);
+					if(isInit == 0)
+					{
+						//PF pas initialisé, on ne connaît pas notre nom unique.
+						free(pf->nom);
+						pf->nom = malloc(strlen(pf->tabMessageRecu[i]));
+						strcpy(pf->nom,pf->tabMessageRecu[i]);
+						isInit = 1;
+						printf("My name is %s\n",pf->nom);
+					}else
+					{
+						PF_Traitement_Message(pf->tabMessageRecu[i]);
+					}
 				}
 				free(pf->tabMessageRecu[i]);  
 				pf->nbItem--;
@@ -61,10 +74,21 @@ void PF_run(Plateforme* pf)
 
 			break;
 		}    	
-	}*/
+	}
 }
 
 void PF_Traitement_Message(char* message)
 {
+	printf("Message : %s \n",message);
 
+}
+
+void PF_init_nouvel_objet(char* nom, int slotDispo, int slotRequisWatcher, int slotRequisOrganizer)
+{
+	nbObjet++;
+	listObjet = realloc(listObjet,nbObjet*sizeof(objet));
+	listObjet[nbObjet-1].nom = malloc(strlen(nom));
+	listObjet[nbObjet-1].slotDispo = slotDispo;
+	listObjet[nbObjet-1].slotRequisWatcher = slotRequisWatcher;
+	listObjet[nbObjet-1].slotRequisOrganizer = slotRequisOrganizer;
 }

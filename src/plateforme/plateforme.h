@@ -19,6 +19,14 @@
 #include "../Client_TCP/clientTCP.h"
 #include "../util/util.h"
 
+typedef struct objet
+{
+	char* nom;
+	int slotDispo;
+	int slotRequisWatcher;
+	int slotRequisOrganizer;
+}objet;
+
 /**
  * \fn int connectToServer(char* nom)
  * \param nom Nom initial de l'objet, doit être mis à jour une fois la réponse du serveur obtenu
@@ -39,5 +47,7 @@ void initPF(Plateforme* pf, char* nom);
 void PF_run(Plateforme* pf);
 
 void PF_Traitement_Message(char* message);
+
+void PF_init_nouvel_objet(char* nom, int slotDispo, int slotRequisWatcher, int slotRequisOrganizer);
 
 #endif //PLATEFORME_H

@@ -1,0 +1,15 @@
+[submodule "src/config"]
+	path = src/config
+	url = https://github.com/ox223252/config.git
+[submodule "src/freeOnExit"]
+	path = src/freeOnExit
+	url = https://github.com/ox223252/freeOnExit.git
+[submodule "src/log"]
+	path = src/log
+	url = https://github.com/ox223252/log.git
+[submodule "Configure"]
+	path = Configure
+	url = https://github.com/ox223252/Configure.git
+[submodule "src/sharedMem"]
+	path = src/sharedMem
+	url = https://github.com/ox223252/sharedMem.git

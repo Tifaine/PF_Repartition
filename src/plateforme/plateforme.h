@@ -19,13 +19,38 @@
 #include "../Client_TCP/clientTCP.h"
 #include "../util/util.h"
 
+#define PATTERN_TO_WATCH	2
+#define PATTERN_TO_ORGANIZE	3
+
+#define TO_WATCH 			2
+#define BEING_WATCH_BY		3
+#define	TO_ORGANIZE 		4
+#define BEING_ORGANIZE_BY	5
+
+#define TYPE_IN				1
+#define TYPE_OUT			2
+
+#define LAUNCH_OBJECT		9
+
+
+typedef struct Pattern
+{
+	char* whoIsWatching;
+	char* whoIsOrganizing;
+}Pattern;
+
 typedef struct objet
 {
 	char* nom;
-	int slotDispo;
-	int slotRequisWatcher;
-	int slotRequisOrganizer;
+	int isSecure;
+
+	int slotAvailable;
+	int nbPattern;
+
+	Pattern* listPattern;
+
 }objet;
+
 
 /**
  * \fn int connectToServer(char* nom)
@@ -48,6 +73,10 @@ void PF_run(Plateforme* pf);
 
 void PF_Traitement_Message(char* message);
 
-void PF_init_nouvel_objet(char* nom, int slotDispo, int slotRequisWatcher, int slotRequisOrganizer);
+void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern);
+
+void PF_Distribuer_Travail();
+
+void toPrint();
 
 #endif //PLATEFORME_H

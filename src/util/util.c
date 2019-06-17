@@ -53,7 +53,7 @@ char** str_split(char* a_str, const char a_delim, int* nbItem)
 int findSubstring(char* input, char* toFind, char*** result)
 {
   char** toReturn;
-  toReturn = malloc(sizeof(char*));
+  toReturn = malloc(strlen(input));
   int nbMessage = 0;
   int isOk = 1;
 

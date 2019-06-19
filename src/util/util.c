@@ -52,45 +52,42 @@ char** str_split(char* a_str, const char a_delim, int* nbItem)
 
 int findSubstring(char* input, char* toFind, char*** result)
 {
-  char** toReturn;
-  toReturn = malloc(strlen(input));
   int nbMessage = 0;
   int isOk = 1;
-
-  while(isOk==1 && input!=NULL)
+  int* tabIndice;
+  tabIndice = malloc(sizeof(int));
+  for(int i = 0;i<strlen(input)-strlen(toFind);i++)
   {
-    if(strlen(input)>strlen(toFind)+1)
+    isOk=1;
+    for(int j=0;j<strlen(toFind);j++)
     {
-      for(int i=strlen(input)-1-strlen(toFind);i>=0;i--)
+      if(input[i+j]!=toFind[j])
       {
-        isOk=1;
-        for(int j=0;j<strlen(toFind);j++)
-        {
-          if(input[i+j]!=toFind[j])
-          {
-            isOk = 0;
-            break;
-          }        
-        }
-        if(isOk==1)
-        {
-          toReturn[nbMessage] = input + i + strlen(toFind);
-          (*result)[nbMessage] = malloc(500);
-          memcpy((*result)[nbMessage],toReturn[nbMessage],strlen(toReturn[nbMessage]));
-          (*result)[nbMessage][ strlen ( toReturn[nbMessage] ) ] = '\0';
-          if(i > 0)
-          {
-            input[i] = '\0';
-          }else
-          {
-            input = NULL;
-          }
-          
-          break;
-        }
-      }
+        isOk = 0;
+        break;
+      }        
     }
-    nbMessage++;
+    if(isOk == 1 )
+    {
+      tabIndice = realloc(tabIndice,(nbMessage+1)*sizeof(int));
+      tabIndice[nbMessage] = i+strlen(toFind);
+      nbMessage++;
+    }
+  }
+  (*result) = realloc((*result),nbMessage * sizeof(char*));
+  for(int i=0;i<nbMessage;i++)
+  {
+    if(i<nbMessage-1)
+    {
+      (*result)[i] = malloc(tabIndice[i+1]-tabIndice[i] - strlen(toFind));
+      memcpy((*result)[i],&(input[tabIndice[i]]),tabIndice[i+1]-tabIndice[i] -strlen(toFind));
+      (*result)[i][tabIndice[i+1]-tabIndice[i] - strlen(toFind)]='\0';
+    }else
+    {
+      (*result)[i] = malloc(strlen(input)-tabIndice[i]);
+      memcpy((*result)[i],&(input[tabIndice[i]]),strlen(input)-tabIndice[i] );
+      (*result)[i][strlen(input)-tabIndice[i]]='\0';
+    }
   }
   return nbMessage;
 }

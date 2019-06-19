@@ -136,6 +136,7 @@ void PF_Distribuer_Travail()
 					{
 						if(listObjet[k].slotAvailable>0)
 						{
+
 							listObjet[i].listPattern[j].whoIsWatching = malloc(strlen(listObjet[k].nom));
 							strcpy(listObjet[i].listPattern[j].whoIsWatching,listObjet[k].nom);
 							listObjet[k].slotAvailable--;
@@ -143,11 +144,7 @@ void PF_Distribuer_Travail()
 							messageToSend = malloc(strlen(listObjet[k].nom)+sizeof(int)*2+2+strlen(listObjet[i].nom));
 							sprintf(messageToSend,"%s|%d/%s/%d",listObjet[k].nom,TO_WATCH,listObjet[i].nom,j);
 							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-							free(messageToSend);
-							messageToSend = malloc(strlen(listObjet[i].nom)+sizeof(int)*2+2+strlen(listObjet[k].nom));
-							sprintf(messageToSend,"%s|%d/%s/%d",listObjet[i].nom,BEING_WATCH_BY,listObjet[k].nom,j);
-							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-							free(messageToSend);
+							free(messageToSend);							
 						}
 					}
 				}
@@ -161,12 +158,19 @@ void PF_Distribuer_Travail()
 							strcpy(listObjet[i].listPattern[j].whoIsOrganizing,listObjet[k].nom);
 							listObjet[k].slotAvailable--;
 							char* messageToSend;
-							messageToSend = malloc(strlen(listObjet[k].nom)+sizeof(int)*2+2+strlen(listObjet[i].nom));
-							sprintf(messageToSend,"%s|%d/%s/%s/%d",listObjet[k].nom,TO_ORGANIZE,listObjet[i].nom,listObjet[i].listPattern[j].whoIsWatching,j);
-							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-							free(messageToSend);
-							messageToSend = malloc(strlen(listObjet[i].nom)+sizeof(int)*2+2+strlen(listObjet[k].nom));
-							sprintf(messageToSend,"%s|%d/%s/%s/%d",listObjet[i].listPattern[j].whoIsWatching,BEING_ORGANIZE_BY,listObjet[k].nom,listObjet[i].nom,j);
+							messageToSend = malloc(
+								strlen(listObjet[k].nom)+
+								sizeof(int)+
+								strlen(listObjet[i].nom)+
+								strlen(listObjet[i].listPattern[j].whoIsWatching)+
+								sizeof(int)+4);
+
+							sprintf(messageToSend,"%s|%d/%s/%s/%d",
+								listObjet[k].nom,
+								TO_ORGANIZE,
+								listObjet[i].nom,
+								listObjet[i].listPattern[j].whoIsWatching,
+								j);
 							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
 							free(messageToSend);
 						}

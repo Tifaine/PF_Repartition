@@ -51,7 +51,6 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 	char* messageToSend;
 	messageToSend = malloc(strlen("01AB")+strlen(message)+strlen(nom_emetteur)+5+sizeof(int));
 	sprintf(messageToSend,"01AB%d|%s|%d|%d|%s",strlen(nom_emetteur),nom_emetteur,type,strlen(message),message);
-
 	if(send(sockFileDescriptor, messageToSend, strlen(messageToSend), MSG_CONFIRM) == -1)
 	{
 		perror("send");

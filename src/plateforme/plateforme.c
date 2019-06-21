@@ -22,8 +22,7 @@ void initPF(Plateforme* pf, char* nom)
 	pthread_mutex_init(&(pf->lockPF), NULL);
 	pf->nom = malloc(strlen(nom));
 	strcpy(pf->nom,nom);
-	pf->nbItem = 0;
-	pf->tabMessageRecu = malloc(sizeof(char*));
+	vector_init(&(pf->tabMessage));
 	listObjet = (objet*)malloc(sizeof(objet));
 	_pf = pf;
 
@@ -33,31 +32,33 @@ void PF_run(Plateforme* pf)
 {
 	int rt;
 	connectToServer(pf->nom);
-
+	int totalMessage;
 	while(1)
 	{
 		switch(state)
 		{
 			case 0:
-			for(int i=(pf->nbItem)-1;i>=0;i--)
+			totalMessage = vector_total(&(pf->tabMessage));
+			for(int i=totalMessage-1;i>=0;i--)
 			{
-				if(strlen(pf->tabMessageRecu[i])>1)
+				char * message = vector_get(&(pf->tabMessage),i);
+				if(strlen(message)>1)
 				{
 					if(isInit == 0)
 					{
 						//PF pas initialisé, on ne connaît pas notre nom unique.
 						free(pf->nom);
-						pf->nom = malloc(strlen(pf->tabMessageRecu[i]));
-						strcpy(pf->nom,pf->tabMessageRecu[i]);
+						pf->nom = malloc(strlen(message));
+						strcpy(pf->nom,message);
 						isInit = 1;
 						printf("My name is %s\n",pf->nom);
 					}else
 					{
-						PF_Traitement_Message(pf->tabMessageRecu[i]);
+						PF_Traitement_Message(message);
 					}
+					vector_delete(&(pf->tabMessage),i);
 				}
-				free(pf->tabMessageRecu[i]);  
-				pf->nbItem--;
+				
 			}
 			state = 1;
 			break;

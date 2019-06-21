@@ -1,5 +1,5 @@
 #include "util.h"
-
+#include <stdint.h>
 
 
 char** str_split(char* a_str, const char a_delim, int* nbItem)
@@ -11,6 +11,7 @@ char** str_split(char* a_str, const char a_delim, int* nbItem)
   char delim[2];
   delim[0] = a_delim;
   delim[1] = 0;
+
 
     /* Count how many elements will be extracted. */
   while (*tmp)
@@ -43,51 +44,92 @@ char** str_split(char* a_str, const char a_delim, int* nbItem)
       *(result + idx++) = strdup(token);
       token = strtok(0, delim);
     }
-    assert(idx == count - 1);
+    if(idx != count - 1)
+    {
+      printf("ERREUR %s\n",a_str);
+      return NULL;
+    }
     *(result + idx) = 0;
   }
   *nbItem = count-1;
+
   return result;
 }
 
 int findSubstring(char* input, char* toFind, char*** result)
 {
   int nbMessage = 0;
-  int isOk = 1;
-  int* tabIndice;
-  tabIndice = malloc(sizeof(int));
-  for(int i = 0;i<strlen(input)-strlen(toFind);i++)
+  const int lengtOfFind = strlen( toFind );
+  int* tabIndice = malloc( sizeof( int ) );
+  if ( !tabIndice )
   {
-    isOk=1;
-    for(int j=0;j<strlen(toFind);j++)
+    return( -1 );
+  }
+
+  for ( int i = 0; i < strlen( input ) - lengtOfFind; i++ )
+  {
+    uint8_t isOk = 1;
+    for ( int j = 0; j < lengtOfFind; j++ )
     {
-      if(input[i+j]!=toFind[j])
+      if ( input[ i + j ] != toFind[ j ] )
       {
         isOk = 0;
         break;
       }        
     }
-    if(isOk == 1 )
+    if ( isOk == 1 )
     {
-      tabIndice = realloc(tabIndice,(nbMessage+1)*sizeof(int));
-      tabIndice[nbMessage] = i+strlen(toFind);
+      void *tmp = realloc( tabIndice, (nbMessage+1) * sizeof( int ) );
+      if ( !tmp )
+      { //failure case
+        // TODO
+        continue;
+      }
+      tabIndice = tmp;
+      tabIndice[ nbMessage ] = i + lengtOfFind;
       nbMessage++;
+      i += lengtOfFind;
     }
   }
-  (*result) = realloc((*result),nbMessage * sizeof(char*));
-  for(int i=0;i<nbMessage;i++)
+
+  void *tmp = realloc( (*result), nbMessage * sizeof( char* ) );
+  if ( !tmp )
   {
-    if(i<nbMessage-1)
+    return ( -1 );
+  }
+  (*result) = tmp;
+
+  for ( int i = 0; i < nbMessage; i++ )
+  {
+    if ( i < ( nbMessage - 1 ) )
     {
-      (*result)[i] = malloc(tabIndice[i+1]-tabIndice[i] - strlen(toFind));
-      memcpy((*result)[i],&(input[tabIndice[i]]),tabIndice[i+1]-tabIndice[i] -strlen(toFind));
-      (*result)[i][tabIndice[i+1]-tabIndice[i] - strlen(toFind)]='\0';
-    }else
+      int msgLength = tabIndice[ i + 1 ] - tabIndice[ i ] - lengtOfFind;
+      (*result)[ i ] = malloc( msgLength + 1 );
+      if ( (*result)[ i ] )
+      {
+        memcpy( (*result)[ i ], input + tabIndice[ i ], msgLength );
+        (*result)[ i ][ msgLength ] = 0;
+      }
+      else
+      { // failure case
+        // TODO
+      }
+    }
+    else
     {
-      (*result)[i] = malloc(strlen(input)-tabIndice[i]);
-      memcpy((*result)[i],&(input[tabIndice[i]]),strlen(input)-tabIndice[i] );
-      (*result)[i][strlen(input)-tabIndice[i]]='\0';
+      int msgLength = strlen( input ) - tabIndice[ i ];
+      (*result)[ i ] = malloc( msgLength + 1 );
+      if ( (*result)[ i ] )
+      {
+        strcpy( (*result)[ i ], input + tabIndice[ i ] );
+      }
+      else
+      { // failure case
+        // TODO
+      }
     }
   }
+  free ( tabIndice );
+
   return nbMessage;
 }

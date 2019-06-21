@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>   //strlen
 #include <stdlib.h>
+#include "vector.h"
 
 #define INIT 					1
 #define MESSAGE					2
@@ -28,8 +29,7 @@ typedef struct Plateforme
 	// declaring mutex 
 	pthread_mutex_t lockPF;
 
-	int nbItem;
-	char** tabMessageRecu;
+	vector tabMessage;
 
 	char* nom;
 }

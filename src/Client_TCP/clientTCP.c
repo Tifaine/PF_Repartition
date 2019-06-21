@@ -72,6 +72,7 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 void* client_TCP_attente_message(void* arg)
 {
 	char* buf;
+	int mustPreventPF = 0;
 	while(1)
 	{
 		if(isConnected == 1)
@@ -88,28 +89,33 @@ void* client_TCP_attente_message(void* arg)
 				{
 					for(int i = nbMess-1;i>=0;i--)
 					{
+
 						if(strstr(result[i],"success")!=NULL)
 						{
 							pthread_mutex_lock(&lockClient);
 							pthread_cond_signal(&condClient); 
 							pthread_mutex_unlock(&lockClient);
-							free(result[i]);
+							
 							usleep(100);
 						}else
 						{
-							((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem] = malloc(MAXDATASIZE);
-							strcpy(((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem], result[i]);
-							((Plateforme*)arg)->tabMessageRecu[((Plateforme*)arg)->nbItem][strlen(result[i])]='\0';
-							((Plateforme*)arg)->nbItem++;    					
-							free(result[i]);
+							// ((Agent*)arg)->tabMessageRecu[((Agent*)arg)->nbItem] = malloc(MAXDATASIZE);	
+							// strcpy(((Agent*)arg)->tabMessageRecu[((Agent*)arg)->nbItem], result[i]);			
+							// ((Agent*)arg)->tabMessageRecu[((Agent*)arg)->nbItem][strlen(result[i])]='\0';
+							// ((Agent*)arg)->nbItem++;	
+							vector_add(&((Plateforme*)arg)->tabMessage,result[i]);
 
-							pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
-							pthread_cond_signal((&((Plateforme*)arg)->condPF));
-							pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
+							mustPreventPF = 1;
 						}
-					}	
+					}
 				}
-
+				if(mustPreventPF == 1)
+				{
+					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
+					pthread_cond_signal((&((Plateforme*)arg)->condPF));
+					pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
+					mustPreventPF = 0;
+				}
 			}else
 			{
 				return NULL;

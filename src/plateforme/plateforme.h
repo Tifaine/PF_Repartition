@@ -18,6 +18,7 @@
 #define PLATEFORME_H
 #include "../Client_TCP/clientTCP.h"
 #include "../util/util.h"
+#include "../util/vector.h"
 
 #define PATTERN_TO_WATCH	2
 #define PATTERN_TO_ORGANIZE	3
@@ -30,6 +31,7 @@
 #define TYPE_IN				1
 #define TYPE_OUT			2
 
+#define DEPART_OBJET		8
 #define LAUNCH_OBJECT		9
 
 
@@ -76,7 +78,5 @@ void PF_Traitement_Message(char* message);
 void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern);
 
 void PF_Distribuer_Travail();
-
-void toPrint();
 
 #endif //PLATEFORME_H

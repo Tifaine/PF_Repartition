@@ -2,7 +2,7 @@
 
 static int state = 0;
 static int isInit = 0;
-objet* listObjet;
+vector listObjet;
 static int nbObjet = 0;
 
 Plateforme* _pf;
@@ -23,7 +23,7 @@ void initPF(Plateforme* pf, char* nom)
 	pf->nom = malloc(strlen(nom));
 	strcpy(pf->nom,nom);
 	vector_init(&(pf->tabMessage));
-	listObjet = (objet*)malloc(sizeof(objet));
+	vector_init(&listObjet);
 	_pf = pf;
 
 }
@@ -51,7 +51,6 @@ void PF_run(Plateforme* pf)
 						pf->nom = malloc(strlen(message));
 						strcpy(pf->nom,message);
 						isInit = 1;
-						printf("My name is %s\n",pf->nom);
 					}else
 					{
 						PF_Traitement_Message(message);
@@ -87,8 +86,6 @@ void PF_run(Plateforme* pf)
 
 void PF_Traitement_Message(char* message)
 {
-	printf("Message : %s \n",message);
-
 	char** delimiters;
 	int nbElement;
 	delimiters = str_split ( message, '-', &nbElement );
@@ -103,109 +100,155 @@ void PF_Traitement_Message(char* message)
 			{
 				PF_init_nouvel_objet(delimiters1[0],atoi(delimiters1[1]),atoi(delimiters1[2]));
 				PF_Distribuer_Travail();
+			}else if(nbElement1 == 2)
+			{
+				if(strlen(delimiters1[0])==1)
+				{
+					if(atoi(delimiters1[0]) == DEPART_OBJET)
+					{
+						PF_Depart_objet(delimiters1[1]);
+					}
+				}
 			}
 		}
 	}
 }
 
+void PF_Depart_objet(char * nom)
+{
+	for(int i=0;i<nbObjet;i++)
+	{
+		objet* obj = vector_get(&listObjet,i);
+		if(strcmp(nom,obj->nom)==0)
+		{
+			for(int j=0;j<obj->nbPattern;j++)
+			{
+				if(strcmp(nom,obj->listPattern[j].whoIsWatching) != 0)
+				{
+					char* messageToSend;
+					messageToSend = malloc(strlen(nom)+sizeof(int)+3+strlen(obj->listPattern[j].whoIsWatching));
+					sprintf(messageToSend,"%s|%d/%s",obj->listPattern[j].whoIsWatching,DEPART_OBJET,nom);
+					client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
+					for(int k=0;k<nbObjet;k++)
+					{
+						objet* obj2 = vector_get(&listObjet,k);
+						if(strcmp(obj2->nom,obj->listPattern[j].whoIsWatching)==0)
+						{
+							obj2->slotAvailable++;
+						}
+					}
+				}
+				if(strcmp(nom,obj->listPattern[j].whoIsOrganizing) != 0)
+				{
+					char* messageToSend;
+					messageToSend = malloc(strlen(nom)+sizeof(int)+3+strlen(obj->listPattern[j].whoIsOrganizing));
+					sprintf(messageToSend,"%s|%d/%s",obj->listPattern[j].whoIsOrganizing,DEPART_OBJET,nom);
+					client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
+					for(int k=0;k<nbObjet;k++)
+					{
+						objet* obj2 = vector_get(&listObjet,k);
+						if(strcmp(obj2->nom,obj->listPattern[j].whoIsOrganizing)==0)
+						{
+							obj2->slotAvailable++;
+						}
+					}
+				}
+			}
+			vector_delete(&listObjet,i);
+		}else
+		{
+
+		}
+	}
+	printf("%d\n",nbObjet);
+	nbObjet--;
+}
+
 void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern)
 {
 	nbObjet++;
-	listObjet = realloc(listObjet,nbObjet*sizeof(objet));
-	listObjet[nbObjet-1].nom = malloc(strlen(nom));
-	strcpy(listObjet[nbObjet-1].nom,nom);
-
-	listObjet[nbObjet-1].slotAvailable = slotDispo;
-	listObjet[nbObjet-1].nbPattern = nbPattern;
-	listObjet[nbObjet-1].isSecure = 0;
-	listObjet[nbObjet-1].listPattern = malloc(sizeof(Pattern));
+	objet* obj;
+	obj = malloc(sizeof(objet));
+	vector_add(&listObjet,obj);
+	obj->nom = malloc(strlen(nom));
+	strcpy(obj->nom,nom);
+	obj->slotAvailable = slotDispo;
+	obj->nbPattern = nbPattern;
+	obj->isSecure = 0;
+	obj->listPattern = malloc(sizeof(Pattern));
 }
 
 void PF_Distribuer_Travail()
 {
-	int isSecure = 1;
 	for(int i=0;i<nbObjet;i++)
 	{
-		isSecure = 1;
-		if(listObjet[i].isSecure == 0)
+		objet* obj = vector_get(&listObjet,i);
+		if(obj->isSecure == 0)
 		{
-			for(int j=0;j<listObjet[i].nbPattern;j++)
+			for(int j=0;j<obj->nbPattern;j++)
 			{
-				if(listObjet[i].listPattern[j].whoIsWatching == NULL)
+				if(obj->listPattern[j].whoIsWatching == NULL)
 				{
 					for(int k=0;k<nbObjet;k++)
 					{
-						if(listObjet[k].slotAvailable>0)
+						objet* obj2 = vector_get(&listObjet,k);
+						if(obj2->slotAvailable>0)
 						{
-
-							listObjet[i].listPattern[j].whoIsWatching = malloc(strlen(listObjet[k].nom));
-							strcpy(listObjet[i].listPattern[j].whoIsWatching,listObjet[k].nom);
-							listObjet[k].slotAvailable--;
+							obj->listPattern[j].whoIsWatching = malloc(strlen(obj2->nom));
+							strcpy(obj->listPattern[j].whoIsWatching,obj2->nom);
+							obj2->slotAvailable--;
 							char* messageToSend;
-							messageToSend = malloc(strlen(listObjet[k].nom)+sizeof(int)*2+2+strlen(listObjet[i].nom));
-							sprintf(messageToSend,"%s|%d/%s/%d",listObjet[k].nom,TO_WATCH,listObjet[i].nom,j);
+							messageToSend = malloc(strlen(obj2->nom)+sizeof(int)*2+2+strlen(obj->nom));
+							sprintf(messageToSend,"%s|%d/%s/%d",obj2->nom,TO_WATCH,obj->nom,j);
 							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
 							free(messageToSend);							
 						}
 					}
 				}
-				if(listObjet[i].listPattern[j].whoIsOrganizing == NULL)
+				if(obj->listPattern[j].whoIsOrganizing == NULL)
 				{
 					for(int k=0;k<nbObjet;k++)
 					{
-						if(listObjet[k].slotAvailable>0)
+						objet* obj2 = vector_get(&listObjet,k);
+						if(obj2->slotAvailable>0)
 						{
-							listObjet[i].listPattern[j].whoIsOrganizing = malloc(strlen(listObjet[k].nom));
-							strcpy(listObjet[i].listPattern[j].whoIsOrganizing,listObjet[k].nom);
-							listObjet[k].slotAvailable--;
+							obj->isSecure = 1;
+							obj->listPattern[j].whoIsOrganizing = malloc(strlen(obj2->nom));
+							strcpy(obj->listPattern[j].whoIsOrganizing,obj2->nom);
+							obj2->slotAvailable--;
 							char* messageToSend;
 							messageToSend = malloc(
-								strlen(listObjet[k].nom)+
+								strlen(obj2->nom)+
 								sizeof(int)+
-								strlen(listObjet[i].nom)+
-								strlen(listObjet[i].listPattern[j].whoIsWatching)+
+								strlen(obj->nom)+
+								strlen(obj->listPattern[j].whoIsWatching)+
 								sizeof(int)+4);
 
 							sprintf(messageToSend,"%s|%d/%s/%s/%d",
-								listObjet[k].nom,
+								obj2->nom,
 								TO_ORGANIZE,
-								listObjet[i].nom,
-								listObjet[i].listPattern[j].whoIsWatching,
+								obj->nom,
+								obj->listPattern[j].whoIsWatching,
 								j);
 							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
 							free(messageToSend);
 						}
 					}
 				}
-				if(listObjet[i].listPattern[j].whoIsWatching == NULL || 
-					listObjet[i].listPattern[j].whoIsOrganizing == NULL)
+				if(obj->listPattern[j].whoIsWatching == NULL || 
+					obj->listPattern[j].whoIsOrganizing == NULL)
 				{
-					isSecure = 0;
+					obj->isSecure = 0;
 				}
 			}
-		}
-
-		if(isSecure == 1)
-		{
-			printf("Objet safe ! \n");
-			char* messageToSend;
-			messageToSend = malloc(strlen(listObjet[i].nom)+8+sizeof(int));
-			sprintf(messageToSend,"%s|%d/Launch",listObjet[i].nom,LAUNCH_OBJECT);
-			printf("%s\n",messageToSend);
-			client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-			free(messageToSend);
-							
-		}
-	}
-}
-
-void toPrint()
-{
-	for(int i=0;i<nbObjet;i++)
-	{
-		printf("OBJET !!!! \nNom : %s\nNbPattern : %d\nslotAvailable %d\n",
-			listObjet[i].nom,
-			listObjet[i].nbPattern,
-			listObjet[i].slotAvailable);
+			if(obj->isSecure == 1)
+			{
+				char* messageToSend;
+				messageToSend = malloc(strlen(obj->nom)+8+sizeof(int));
+				sprintf(messageToSend,"%s|%d/Launch",obj->nom,LAUNCH_OBJECT);
+				client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
+				free(messageToSend);				
+			}
+		}		
 	}
 }

@@ -1,121 +1,92 @@
-#include "util.h"
-#include <stdint.h>
-#include "../log/log.h"
+#include "clientTCP.h"
 
-char** str_split(char* a_str, const char a_delim, int* nbItem)
+
+#define MAXDATASIZE 2000
+static int sockFileDescriptor;
+static int isConnected = 0;
+
+pthread_t threadClientTCP;
+
+int client_TCP_init_connec(char* addr, int port, void* arg)
 {
-  char** result    = 0;
-  size_t count     = 1;
-  int indiceDebut  = 0;
-  int indiceFin    = 0;
-
-  for(int i=0;i<strlen(a_str);i++)
-  {
-    if(a_str[i]==a_delim)count++; 
-  }
-
-
-  result = malloc(sizeof(char*)*count);
-  for(int i=0;i<count;i++)
-  {
-    for(int j=indiceFin;j<strlen(a_str);j++)
-    {
-      if(a_str[j]==a_delim)
-      {
-        indiceFin = j+1;
-        result[i] = malloc(indiceFin-indiceDebut+1);
-        memcpy(result[i],&(a_str[indiceDebut]),indiceFin-indiceDebut-1);
-        result[i][indiceFin-indiceDebut-1] = '\0';
-        indiceDebut = j+1;
-        break;
-      }else if(j==strlen(a_str)-1)
-      {
-        indiceFin = j;
-        result[i] = malloc(indiceFin-indiceDebut+2);
-        memcpy(result[i],&(a_str[indiceDebut]),indiceFin-indiceDebut+1);
-        result[i][indiceFin-indiceDebut +1] = '\0';
-
-        break;
-      }
-    }
-  }
-  *nbItem = count;
-  return result;
+	
+	struct sockaddr_in servaddr;
+	sockFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
+	if(sockFileDescriptor == -1)
+	{
+		printf("Failed \n");
+		return -1; 
+	}
+	bzero(&servaddr, sizeof(servaddr)); 
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_addr.s_addr = inet_addr(addr); 
+	servaddr.sin_port = htons(port);
+	if (connect(sockFileDescriptor, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) 
+	{ 
+		printf("connection with the server failed...\n"); 
+		return -2; 
+	}else
+	{
+		printf("connected to the server.\n"); 
+	}
+	isConnected = 1;
+	pthread_create(&(threadClientTCP),NULL,client_TCP_attente_message,arg);
+	return 0;
 }
 
-int findSubstring(char* input, char* toFind, char*** result)
+int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 {
-  if(input == NULL  || toFind == NULL)
-  {
-    return 0;
-  }
-  int nbMessage = 0;
-  const int lengtOfFind = strlen( toFind );
-  int* tabIndice = malloc( sizeof( int ) );
-  if ( !tabIndice )
-  {
-    return( -1 );
-  }
+	int rt;
+	char* messageToSend = malloc( strlen("01AB") + strlen(message) + strlen(nom_emetteur) + 5 + 10 );
+	sprintf(messageToSend,"01AB%d|%s|%d|%d|%s",strlen(nom_emetteur),nom_emetteur,type,strlen(message),message);
+	if(send(sockFileDescriptor, messageToSend, strlen(messageToSend), MSG_CONFIRM) == -1)
+	{
+		free ( messageToSend );
+		perror("send");
+		return (1);
+	}
+	free ( messageToSend );
+	
+	return 0;
+}
 
-  for ( int i = 0; i < strlen( input ) - lengtOfFind; i++ )
-  {
-    uint8_t isOk = 1;
-    for ( int j = 0; j < lengtOfFind; j++ )
-    {
-      if ( input[ i + j ] != toFind[ j ] )
-      {
-        isOk = 0;
-        break;
-      }        
-    }
-    if ( isOk == 1 )
-    {
-      void *tmp = realloc( tabIndice, (nbMessage+1) * sizeof( int ) );
-      if ( !tmp )
-      { //failure case
-        // TODO
-        continue;
-      }
-      tabIndice = tmp;
-      tabIndice[ nbMessage ] = i + lengtOfFind;
-      nbMessage++;
-      i += lengtOfFind;
-    }
-  }
+void* client_TCP_attente_message(void* arg)
+{
+	char* buf;
+	int mustPreventPF = 0;
+	while(1)
+	{
+		if(isConnected == 1)
+		{
+			buf = calloc(MAXDATASIZE,sizeof(char));
+			buf[0]='\0';
+			if(recv(sockFileDescriptor, buf, MAXDATASIZE, 0)>0)
+			{
+				char** result;
+				result = malloc(sizeof(char*));	
+				int nbMess = findSubstring(buf,"01AB", &result);
+				free(buf);
 
-  (*result) = realloc( (*result), nbMessage * sizeof( char* ) );
- 
-  for ( int i = 0; i < nbMessage; i++ )
-  {
-    if ( i < ( nbMessage - 1 ) )
-    {
-      int msgLength = tabIndice[ i + 1 ] - tabIndice[ i ] - lengtOfFind;
-      (*result)[ i ] = malloc( 2*msgLength );
-      if ( (*result)[ i ] )
-      {
-        memcpy( (*result)[ i ], input + tabIndice[ i ], msgLength );
-        (*result)[ i ][ msgLength ] = '\0';
-      }
-      else
-      { // failure case
-        // TODO
-      }
-    }
-    else
-    {
-      int msgLength = strlen( input ) - tabIndice[ i ];
-      (*result)[ i ] = malloc( 2* msgLength );
-      if ( (*result)[ i ] )
-      {
-        strcpy( (*result)[ i ], input + tabIndice[ i ] );
-      }
-      else
-      { // failure case
-        // TODO
-      }
-    }
-  }
-  free ( tabIndice );
 
-  return nbMessage;
+				if(nbMess>0)
+				{
+					for(int i = nbMess-1;i>=0;i--)
+					{
+						vector_add(&((Plateforme*)arg)->tabMessage,result[i]);
+						mustPreventPF = 1;						
+					}
+				}
+				if(mustPreventPF == 1)
+				{
+					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
+					pthread_cond_signal((&((Plateforme*)arg)->condPF));
+					pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
+					mustPreventPF = 0;
+				}
+			}else
+			{
+				return NULL;
+			}    			
+		}			
+	}	
 }

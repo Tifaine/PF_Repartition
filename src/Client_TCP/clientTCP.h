@@ -17,6 +17,8 @@
 #ifndef CLIENT_TCP_H
 #define CLIENT_TCP_H
 
+#include <stdint.h>
+#include "../log/log.h"
 #include <netdb.h> 
 #include <stdio.h> 
 #include <stdlib.h> 

@@ -45,6 +45,10 @@ char** str_split(char* a_str, const char a_delim, int* nbItem)
 
 int findSubstring(char* input, char* toFind, char*** result)
 {
+  if(input == NULL  || toFind == NULL)
+  {
+    return 0;
+  }
   int nbMessage = 0;
   const int lengtOfFind = strlen( toFind );
   int* tabIndice = malloc( sizeof( int ) );
@@ -79,23 +83,18 @@ int findSubstring(char* input, char* toFind, char*** result)
     }
   }
 
-  void *tmp = realloc( (*result), nbMessage * sizeof( char* ) );
-  if ( !tmp )
-  {
-    return ( -1 );
-  }
-  (*result) = tmp;
-
+  (*result) = realloc( (*result), nbMessage * sizeof( char* ) );
+ 
   for ( int i = 0; i < nbMessage; i++ )
   {
     if ( i < ( nbMessage - 1 ) )
     {
       int msgLength = tabIndice[ i + 1 ] - tabIndice[ i ] - lengtOfFind;
-      (*result)[ i ] = malloc( msgLength + 1 );
+      (*result)[ i ] = malloc( 2*msgLength );
       if ( (*result)[ i ] )
       {
         memcpy( (*result)[ i ], input + tabIndice[ i ], msgLength );
-        (*result)[ i ][ msgLength ] = 0;
+        (*result)[ i ][ msgLength ] = '\0';
       }
       else
       { // failure case
@@ -105,7 +104,7 @@ int findSubstring(char* input, char* toFind, char*** result)
     else
     {
       int msgLength = strlen( input ) - tabIndice[ i ];
-      (*result)[ i ] = malloc( msgLength + 1 );
+      (*result)[ i ] = malloc( 2* msgLength );
       if ( (*result)[ i ] )
       {
         strcpy( (*result)[ i ], input + tabIndice[ i ] );

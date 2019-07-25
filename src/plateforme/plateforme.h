@@ -35,6 +35,7 @@
 #define LAUNCH_OBJECT		9
 
 
+
 typedef struct Pattern
 {
 	char* whoIsWatching;
@@ -73,7 +74,7 @@ void initPF(Plateforme* pf, char* nom);
 
 void PF_run(Plateforme* pf);
 
-void PF_Traitement_Message(char* message);
+void PF_Traitement_Message(_message* message);
 
 void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern);
 

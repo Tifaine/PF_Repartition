@@ -16,7 +16,8 @@
 
 #ifndef CLIENT_TCP_H
 #define CLIENT_TCP_H
-
+#include "../mxml/mxml.h"
+#include "../util/parserXML.h"
 #include <stdint.h>
 #include "../log/log.h"
 #include <netdb.h> 

@@ -20,6 +20,7 @@
 #define INIT 					1
 #define MESSAGE					2
 
+
 typedef struct Plateforme
 {
 	

@@ -36,24 +36,38 @@ int client_TCP_init_connec(char* addr, int port, void* arg)
 
 int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 {
-	int rt;
-	char* messageToSend = malloc( strlen("01AB") + strlen(message) + strlen(nom_emetteur) + 5 + 10 );
-	sprintf(messageToSend,"01AB%d|%s|%d|%d|%s",strlen(nom_emetteur),nom_emetteur,type,strlen(message),message);
-	if(send(sockFileDescriptor, messageToSend, strlen(messageToSend), MSG_CONFIRM) == -1)
+	mxml_node_t *xml;
+	mxml_node_t *data;
+	char _cType[2];
+	char result[MAXDATASIZE];
+	sprintf(_cType, "%d", type);
+
+
+	xml = mxmlNewXML("1.0");
+	data = mxmlNewElement(xml, "message");
+	mxmlElementSetAttr(data,"name",nom_emetteur);
+   
+    mxmlElementSetAttr(data,"type",_cType);
+    mxmlElementSetAttr(data,"content",message);
+	mxmlSaveString(xml , result, MAXDATASIZE, MXML_NO_CALLBACK);
+	printf("To send : %s\n",result);
+	
+
+	
+	if(send(sockFileDescriptor, result, strlen(result), MSG_CONFIRM) == -1)
 	{
-		free ( messageToSend );
+		free ( result );
 		perror("send");
 		return (1);
 	}
-	free ( messageToSend );
-	
+
+	//free(result);
 	return 0;
 }
 
 void* client_TCP_attente_message(void* arg)
 {
 	char* buf;
-	int mustPreventPF = 0;
 	while(1)
 	{
 		if(isConnected == 1)
@@ -64,24 +78,16 @@ void* client_TCP_attente_message(void* arg)
 			{
 				char** result;
 				result = malloc(sizeof(char*));	
-				int nbMess = findSubstring(buf,"01AB", &result);
+				printf("Recu : %s\n",buf);
+				int nbMess = openMessage(&((Plateforme*)arg)->tabMessage,buf);				
 				free(buf);
-
-
+				printf("nbMessage : %d\n",nbMess);
 				if(nbMess>0)
-				{
-					for(int i = nbMess-1;i>=0;i--)
-					{
-						vector_add(&((Plateforme*)arg)->tabMessage,result[i]);
-						mustPreventPF = 1;						
-					}
-				}
-				if(mustPreventPF == 1)
 				{
 					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));
 					pthread_cond_signal((&((Plateforme*)arg)->condPF));
-					pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));
-					mustPreventPF = 0;
+					pthread_mutex_unlock((&((Plateforme*)arg)->lockPF));				
+					
 				}
 			}else
 			{

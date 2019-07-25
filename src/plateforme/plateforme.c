@@ -12,7 +12,7 @@ Plateforme* _pf;
 
 int connectToServer(char* nom)
 {
-	client_TCP_envoi_message(nom,01,"01");
+	client_TCP_envoi_message(nom,01,"1");
 	return 0;
 }
 
@@ -41,15 +41,16 @@ void PF_run(Plateforme* pf)
 			totalMessage = vector_total(&(pf->tabMessage));
 			for(int i=totalMessage-1;i>=0;i--)
 			{
-				char * message = vector_get(&(pf->tabMessage),i);
-				if(strlen(message)>1)
+				_message* message = vector_get(&(pf->tabMessage),i);
+				printf("Ici %d %s\n",strlen(message->content),message->content);
+				if(strlen(message->content)>1)
 				{
 					if(isInit == 0)
 					{
 						//PF pas initialisé, on ne connaît pas notre nom unique.
 						free(pf->nom);
-						pf->nom = malloc(strlen(message));
-						strcpy(pf->nom,message);
+						pf->nom = malloc(strlen(message->content));
+						strcpy(pf->nom,message->content);
 						isInit = 1;
 					}else
 					{
@@ -84,9 +85,14 @@ void PF_run(Plateforme* pf)
 	}
 }
 
-void PF_Traitement_Message(char* message)
+void PF_Traitement_Message(_message* message)
 {
-	char** delimiters;
+	printf("message à traiter : %d %s\n",message->type,message->content);
+	if(atoi(message->type)==DEPART_OBJET)
+	{
+		PF_Depart_objet(message->content);
+	}
+	/*char** delimiters;
 	int nbElement;
 	delimiters = str_split ( message, '-', &nbElement );
 	if(nbElement == 2)
@@ -111,7 +117,7 @@ void PF_Traitement_Message(char* message)
 				}
 			}
 		}
-	}
+	}*/
 }
 
 void PF_Depart_objet(char * nom)

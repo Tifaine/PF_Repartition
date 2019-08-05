@@ -48,7 +48,16 @@ int client_TCP_envoi_message(char* nom_emetteur, int type, char* message)
 	mxmlElementSetAttr(data,"name",nom_emetteur);
    
     mxmlElementSetAttr(data,"type",_cType);
-    mxmlElementSetAttr(data,"content",message);
+    if(type==1)
+    {
+    	mxmlElementSetAttr(data,"content",message);
+    }else
+    {
+    	mxml_node_t *tree = NULL;
+    	tree = mxmlLoadString(NULL, message, MXML_OPAQUE_CALLBACK);
+    	mxmlAdd(data,MXML_ADD_AFTER,MXML_ADD_TO_PARENT,tree);
+    }
+    
 	mxmlSaveString(xml , result, MAXDATASIZE, MXML_NO_CALLBACK);
 	printf("To send : %s\n",result);
 	
@@ -81,7 +90,6 @@ void* client_TCP_attente_message(void* arg)
 				printf("Recu : %s\n",buf);
 				int nbMess = openMessage(&((Plateforme*)arg)->tabMessage,buf);				
 				free(buf);
-				printf("nbMessage : %d\n",nbMess);
 				if(nbMess>0)
 				{
 					pthread_mutex_lock((&((Plateforme*)arg)->lockPF));

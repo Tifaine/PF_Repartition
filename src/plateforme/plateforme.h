@@ -31,6 +31,7 @@
 #define TYPE_IN				1
 #define TYPE_OUT			2
 
+#define NEW_OBJECT			2
 #define DEPART_OBJET		8
 #define LAUNCH_OBJECT		9
 

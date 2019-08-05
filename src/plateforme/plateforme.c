@@ -8,7 +8,7 @@ static int nbObjet = 0;
 Plateforme* _pf;
 
 #define TOPIC 2
-#define MAXDATASIZE 100
+#define MAXDATASIZE 500
 
 int connectToServer(char* nom)
 {
@@ -42,22 +42,21 @@ void PF_run(Plateforme* pf)
 			for(int i=totalMessage-1;i>=0;i--)
 			{
 				_message* message = vector_get(&(pf->tabMessage),i);
-				printf("Ici %d %s\n",strlen(message->content),message->content);
-				if(strlen(message->content)>1)
+				printf("Ici %d %s\n",strlen(vector_get(&(message->listArg),0)),vector_get(&(message->listArg),0));
+				
+				if(isInit == 0)
 				{
-					if(isInit == 0)
-					{
 						//PF pas initialisé, on ne connaît pas notre nom unique.
-						free(pf->nom);
-						pf->nom = malloc(strlen(message->content));
-						strcpy(pf->nom,message->content);
-						isInit = 1;
-					}else
-					{
-						PF_Traitement_Message(message);
-					}
-					vector_delete(&(pf->tabMessage),i);
-				}
+					free(pf->nom);
+					pf->nom = malloc(strlen(vector_get(&(message->listArg),0)));
+					strcpy(pf->nom,vector_get(&(message->listArg),0));
+					isInit = 1;
+				}else
+				{
+					PF_Traitement_Message(message);
+				}					
+				
+				vector_delete(&(pf->tabMessage),i);
 				
 			}
 			state = 1;
@@ -87,37 +86,15 @@ void PF_run(Plateforme* pf)
 
 void PF_Traitement_Message(_message* message)
 {
-	printf("message à traiter : %d %s\n",message->type,message->content);
-	if(atoi(message->type)==DEPART_OBJET)
+	printf("message à traiter : %d %s\n",message->type,vector_get(&(message->listArg),0));
+	if(message->type==DEPART_OBJET)
 	{
-		PF_Depart_objet(message->content);
+		PF_Depart_objet(vector_get(&(message->listArg),0));
+	}else if(message->type == NEW_OBJECT)
+	{	
+		PF_init_nouvel_objet(vector_get(&(message->listArg),1),atoi(vector_get(&(message->listArg),0)),atoi(vector_get(&(message->listArg),2)));
+		PF_Distribuer_Travail();
 	}
-	/*char** delimiters;
-	int nbElement;
-	delimiters = str_split ( message, '-', &nbElement );
-	if(nbElement == 2)
-	{
-		if(atoi(delimiters[0])==TOPIC)
-		{
-			char** delimiters1;
-			int nbElement1;
-			delimiters1 = str_split ( delimiters[1], '/', &nbElement1 );
-			if(nbElement1 == 3)
-			{
-				PF_init_nouvel_objet(delimiters1[0],atoi(delimiters1[1]),atoi(delimiters1[2]));
-				PF_Distribuer_Travail();
-			}else if(nbElement1 == 2)
-			{
-				if(strlen(delimiters1[0])==1)
-				{
-					if(atoi(delimiters1[0]) == DEPART_OBJET)
-					{
-						PF_Depart_objet(delimiters1[1]);
-					}
-				}
-			}
-		}
-	}*/
 }
 
 void PF_Depart_objet(char * nom)
@@ -127,7 +104,7 @@ void PF_Depart_objet(char * nom)
 		objet* obj = vector_get(&listObjet,i);
 		if(strcmp(nom,obj->nom)==0)
 		{
-			for(int j=0;j<obj->nbPattern;j++)
+			/*for(int j=0;j<obj->nbPattern;j++)
 			{
 				if(strcmp(nom,obj->listPattern[j].whoIsWatching) != 0)
 				{
@@ -159,7 +136,7 @@ void PF_Depart_objet(char * nom)
 						}
 					}
 				}
-			}
+			}*/
 			vector_delete(&listObjet,i);
 		}else
 		{
@@ -172,9 +149,10 @@ void PF_Depart_objet(char * nom)
 
 void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern)
 {
+	printf("Init : %s %d %d \n",nom,slotDispo,nbPattern);
 	nbObjet++;
 	objet* obj;
-	obj = malloc(sizeof(objet));
+	obj = malloc(sizeof(*(obj)));
 	vector_add(&listObjet,obj);
 	obj->nom = malloc(strlen(nom));
 	strcpy(obj->nom,nom);
@@ -200,14 +178,32 @@ void PF_Distribuer_Travail()
 						objet* obj2 = vector_get(&listObjet,k);
 						if(obj2->slotAvailable>0)
 						{
+							printf("Trouvé pour watch ! \n");
 							obj->listPattern[j].whoIsWatching = malloc(strlen(obj2->nom));
 							strcpy(obj->listPattern[j].whoIsWatching,obj2->nom);
 							obj2->slotAvailable--;
-							char* messageToSend;
-							messageToSend = malloc(strlen(obj2->nom)+sizeof(int)*2+2+strlen(obj->nom));
-							sprintf(messageToSend,"%s|%d/%s/%d",obj2->nom,TO_WATCH,obj->nom,j);
-							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-							free(messageToSend);							
+							mxml_node_t *xml;
+							mxml_node_t *data;
+
+							char result[MAXDATASIZE];
+							xml = mxmlNewXML("1.0");
+							data = mxmlNewElement(xml, "toTransfer");
+							mxmlElementSetAttr(data,"receiver",obj2->nom);
+							mxmlElementSetAttr(data,"type","3");
+							mxmlElementSetAttr(data,"toWatch",obj->nom);
+							char _cPatternNumber[2];
+							sprintf(_cPatternNumber, "%d", j);
+							mxmlElementSetAttr(data,"patternNumber",_cPatternNumber);							
+							mxmlSaveString(xml , result, MAXDATASIZE, MXML_NO_CALLBACK);
+						
+							client_TCP_envoi_message(_pf->nom,2,result);
+							break;
+
+							// char* messageToSend;
+							// messageToSend = malloc(strlen(obj2->nom)+sizeof(int)*2+2+strlen(obj->nom));
+							// sprintf(messageToSend,"%s|%d/%s/%d",obj2->nom,TO_WATCH,obj->nom,j);
+							// client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
+							// free(messageToSend);							
 						}
 					}
 				}
@@ -215,29 +211,50 @@ void PF_Distribuer_Travail()
 				{
 					for(int k=0;k<nbObjet;k++)
 					{
-						objet* obj2 = vector_get(&listObjet,k);
+						printf("Trouvé pour organize ! \n");
+						 objet* obj2 = vector_get(&listObjet,k);
 						if(obj2->slotAvailable>0)
 						{
 							obj->isSecure = 1;
 							obj->listPattern[j].whoIsOrganizing = malloc(strlen(obj2->nom));
 							strcpy(obj->listPattern[j].whoIsOrganizing,obj2->nom);
 							obj2->slotAvailable--;
-							char* messageToSend;
-							messageToSend = malloc(
-								strlen(obj2->nom)+
-								sizeof(int)+
-								strlen(obj->nom)+
-								strlen(obj->listPattern[j].whoIsWatching)+
-								sizeof(int)+4);
+							mxml_node_t *xml;
+							mxml_node_t *data;
 
-							sprintf(messageToSend,"%s|%d/%s/%s/%d",
-								obj2->nom,
-								TO_ORGANIZE,
-								obj->nom,
-								obj->listPattern[j].whoIsWatching,
-								j);
-							client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-							free(messageToSend);
+							char result[MAXDATASIZE];
+							xml = mxmlNewXML("1.0");
+							data = mxmlNewElement(xml, "toTransfer");
+							mxmlElementSetAttr(data,"receiver",obj2->nom);
+							mxmlElementSetAttr(data,"type","4");
+							mxmlElementSetAttr(data,"toOrganize",obj->nom);
+							mxmlElementSetAttr(data,"isWatching",obj->listPattern[j].whoIsWatching);
+							char _cPatternNumber[2];
+							sprintf(_cPatternNumber, "%d", j);
+							mxmlElementSetAttr(data,"patternNumber",_cPatternNumber);							
+							mxmlSaveString(xml , result, MAXDATASIZE, MXML_NO_CALLBACK);
+							
+							client_TCP_envoi_message(_pf->nom,2,result);
+							break;
+
+
+
+						// 	char* messageToSend;
+						// 	messageToSend = malloc(
+						// 		strlen(obj2->nom)+
+						// 		sizeof(int)+
+						// 		strlen(obj->nom)+
+						// 		strlen(obj->listPattern[j].whoIsWatching)+
+						// 		sizeof(int)+4);
+
+						// 	sprintf(messageToSend,"%s|%d/%s/%s/%d",
+						// 		obj2->nom,
+						// 		TO_ORGANIZE,
+						// 		obj->nom,
+						// 		obj->listPattern[j].whoIsWatching,
+						// 		j);
+						// 	client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
+						// 	free(messageToSend);
 						}
 					}
 				}
@@ -247,13 +264,18 @@ void PF_Distribuer_Travail()
 					obj->isSecure = 0;
 				}
 			}
+			mxml_node_t *xml;
+			mxml_node_t *data;
 			if(obj->isSecure == 1)
 			{
-				char* messageToSend;
-				messageToSend = malloc(strlen(obj->nom)+8+sizeof(int));
-				sprintf(messageToSend,"%s|%d/Launch",obj->nom,LAUNCH_OBJECT);
-				client_TCP_envoi_message(_pf->nom,MESSAGE,messageToSend);
-				free(messageToSend);				
+
+				char result[MAXDATASIZE];
+				xml = mxmlNewXML("1.0");
+				data = mxmlNewElement(xml, "toTransfer");
+				mxmlElementSetAttr(data,"receiver",obj->nom);
+				mxmlElementSetAttr(data,"type","9");
+				mxmlSaveString(xml , result, MAXDATASIZE, MXML_NO_CALLBACK);
+				client_TCP_envoi_message(_pf->nom,2,result);	
 			}
 		}		
 	}

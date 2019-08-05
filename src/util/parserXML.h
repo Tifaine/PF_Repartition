@@ -12,7 +12,7 @@ typedef struct _message
 {
 	char* emitterName;
 	int type;
-	char* content;
+	vector listArg;
 }_message;
 
 int openMessage(vector * listMessage, char * message);

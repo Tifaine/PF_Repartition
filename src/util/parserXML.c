@@ -16,7 +16,6 @@ int openMessage(vector * listMessage, char * message)
 	{
 		return 0;
 	}
-	printf("La\n");
 	node = mxmlFindElement ( tree, tree, "publish", NULL, NULL, MXML_DESCEND );
 	if(node != NULL)
 	{
@@ -24,20 +23,28 @@ int openMessage(vector * listMessage, char * message)
 			node != NULL;
 			node = mxmlFindElement ( node, tree, "publish", NULL, NULL, MXML_DESCEND ) )
 		{
-			nodeBis = mxmlFindElement ( node, tree, "content", NULL, NULL, MXML_DESCEND );
+			nodeBis = mxmlFindElement ( node, node, "content", NULL, NULL, MXML_DESCEND );
 			if(nodeBis != NULL)
 			{
 				_message* mess;
 				mess = malloc(sizeof(*(mess)));
-				
+				vector_init(&(mess->listArg));
 				char * type = mxmlElementGetAttr ( nodeBis, "type" );
 				if(type != NULL)
 				{
+					printf("Type : %s\n",type);
 					if(atoi(type) == 8)
 					{
 						mess->type = atoi(type);
-						mess->content = malloc(strlen(mxmlElementGetAttr ( nodeBis, "unique_name" )));
-						strcpy(mess->content,mxmlElementGetAttr ( nodeBis, "unique_name" ));
+						vector_add(&(mess->listArg),mxmlElementGetAttr ( nodeBis, "unique_name" ));
+						vector_add(listMessage,mess);
+						nbMessage++;
+					}else if(atoi(type)==2)
+					{
+						mess->type = atoi(type);
+						vector_add(&(mess->listArg),mxmlElementGetAttr ( nodeBis, "nbSlot" ));
+						vector_add(&(mess->listArg),mxmlElementGetAttr ( nodeBis, "from" ));						
+						vector_add(&(mess->listArg),mxmlElementGetAttr ( nodeBis, "nbPattern" ));
 						vector_add(listMessage,mess);
 						nbMessage++;
 					}
@@ -51,20 +58,16 @@ int openMessage(vector * listMessage, char * message)
 			node != NULL;
 			node = mxmlFindElement ( node, tree, "message", NULL, NULL, MXML_DESCEND ) )
 		{
-			printf("La\n");
 			_message* mess;
 			mess = malloc(sizeof(*(mess)));
+			vector_init(&(mess->listArg));
 			mess->emitterName = malloc(strlen(mxmlElementGetAttr ( node, "name" )));
 			strcpy(mess->emitterName,mxmlElementGetAttr ( node, "name" ));		
 			mess->type = atoi(mxmlElementGetAttr ( node, "type" ));
-			printf("La\n");
 			switch(mess->type)
 			{
 				case INIT:
-				mess->content = malloc(strlen(mxmlElementGetAttr ( node, "privateName" )));
-
-				strcpy(mess->content,mxmlElementGetAttr ( node, "privateName" ));
-
+				vector_add(&(mess->listArg),mxmlElementGetAttr ( node, "privateName" ));
 				break;
 			}
 

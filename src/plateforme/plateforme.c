@@ -42,7 +42,6 @@ void PF_run(Plateforme* pf)
 			for(int i=totalMessage-1;i>=0;i--)
 			{
 				_message* message = vector_get(&(pf->tabMessage),i);
-				printf("Ici %d %s\n",strlen(vector_get(&(message->listArg),0)),vector_get(&(message->listArg),0));
 				
 				if(isInit == 0)
 				{
@@ -86,7 +85,6 @@ void PF_run(Plateforme* pf)
 
 void PF_Traitement_Message(_message* message)
 {
-	printf("message à traiter : %d %s\n",message->type,vector_get(&(message->listArg),0));
 	if(message->type==DEPART_OBJET)
 	{
 		PF_Depart_objet(vector_get(&(message->listArg),0));
@@ -143,13 +141,12 @@ void PF_Depart_objet(char * nom)
 
 		}
 	}
-	printf("%d\n",nbObjet);
+	
 	nbObjet--;
 }
 
 void PF_init_nouvel_objet(char* nom, int slotDispo, int nbPattern)
 {
-	printf("Init : %s %d %d \n",nom,slotDispo,nbPattern);
 	nbObjet++;
 	objet* obj;
 	obj = malloc(sizeof(*(obj)));
@@ -178,7 +175,6 @@ void PF_Distribuer_Travail()
 						objet* obj2 = vector_get(&listObjet,k);
 						if(obj2->slotAvailable>0)
 						{
-							printf("Trouvé pour watch ! \n");
 							obj->listPattern[j].whoIsWatching = malloc(strlen(obj2->nom));
 							strcpy(obj->listPattern[j].whoIsWatching,obj2->nom);
 							obj2->slotAvailable--;
@@ -211,7 +207,7 @@ void PF_Distribuer_Travail()
 				{
 					for(int k=0;k<nbObjet;k++)
 					{
-						printf("Trouvé pour organize ! \n");
+						
 						 objet* obj2 = vector_get(&listObjet,k);
 						if(obj2->slotAvailable>0)
 						{

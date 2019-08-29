@@ -34,7 +34,7 @@ int main ( int argc, char ** argv )
 	}
 	flags;
 	char logFileName[ 512 ] = "";
- 
+ 	char address[ 16 ]="127.0.0.1";
 	config_el config[] =
 	{
 		{ NULL }
@@ -52,6 +52,7 @@ int main ( int argc, char ** argv )
 		{ "--file", "-lF", 0x40, cT ( bool ), &flags, "log in file" },
 		{ "--logFileName", "-lFN", 1, cT ( str ), logFileName, "log file name" },
 		#endif
+		{ "--address", "-a", 1, cT ( str ), address, "Server's address" },
 		{ NULL }
 	};
  
@@ -62,21 +63,10 @@ int main ( int argc, char ** argv )
 	}
 	// END_FREEONEXIT
 	
-	// INIT_CONFIG
-	if ( readConfigFile ( "configFilePath", config ) )
+	if ( readParamArgs ( argc, argv, param ) )
 	{ // failure case
 	}
-	else if ( readConfigArgs ( argc, argv, config ) )
-	{ // failure case
-	}
-	else if ( readParamArgs ( argc, argv, param ) )
-	{ // failure case
-	}
-	else if ( flags.help )
-	{// configFile read successfully
-		helpParamArgs ( param );
-		helpConfigArgs ( config );
-	}
+	
 	// END_CONFIG
 	// INIT_LOG
 	#ifdef __CONFIG_DATA_H__
@@ -99,7 +89,7 @@ int main ( int argc, char ** argv )
 	
 	// END_CORE
 	initPF(&pf, "Linux_X86_PF");
-	client_TCP_init_connec("127.0.0.1",12345,&pf);
+	client_TCP_init_connec(address,12345,&pf);
 	PF_run(&pf);
 	
 	while(1);
